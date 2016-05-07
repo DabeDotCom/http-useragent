@@ -71,6 +71,8 @@ has Bool $.throw-exceptions;
 has $.debug;
 has IO::Handle $.debug-handle;
 
+has $.ssl-protocol-version is rw;
+
 my sub search-header-end(Blob $input) {
     my $i = 0;
     my $input-bytes = $input.bytes;
@@ -99,7 +101,7 @@ my sub _index_buf(Blob $input, Blob $sub) {
     return -1;
 }
 
-submethod BUILD(:$!useragent, Bool :$!throw-exceptions, :$!max-redirects = 5, :$!debug) {
+submethod BUILD(:$!useragent, Bool :$!throw-exceptions, :$!max-redirects = 5, :$!debug, :$!ssl-protocol-version = -1) {
     $!useragent = get-ua($!useragent) if $!useragent.defined;
     if $!debug.defined {
         if $!debug ~~ Bool and $!debug == True {
@@ -346,7 +348,7 @@ multi method get-connection(HTTP::Request $request, Str $host, Int $port?) retur
     if $request.scheme eq 'https' {
         try require IO::Socket::SSL;
         die "Please install IO::Socket::SSL in order to fetch https sites" if ::('IO::Socket::SSL') ~~ Failure;
-        $conn = ::('IO::Socket::SSL').new(:$host, :port($port // 443), :timeout($.timeout))
+        $conn = ::('IO::Socket::SSL').new(:$host, :port($port // 443), :timeout($.timeout), :protocol-version($!ssl-protocol-version));
     }
     else {
         $conn = IO::Socket::INET.new(:$host, :port($port // 80), :timeout($.timeout));
